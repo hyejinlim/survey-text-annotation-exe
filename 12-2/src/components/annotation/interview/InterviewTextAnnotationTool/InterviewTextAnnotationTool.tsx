@@ -3,6 +3,7 @@ import { Col, Row } from 'reactstrap';
 import InterviewDataModify from '~/components/interview/InterviewDataDetail/InterviewDataModify';
 import CollapseBox from '~/components/shared/CollapseBox';
 import * as styles from './styles';
+import InterviewQuestionInfoModify from '../InterviewQuestionInfoModify';
 import InterviewTextAnnotation from '../InterviewTextAnnotation';
 
 function InterviewTextAnnotationTool() {
@@ -17,7 +18,7 @@ function InterviewTextAnnotationTool() {
           <InterviewDataModify />
         </CollapseBox>
         {/* 문항별 정보 === 라벨링 form */}
-        {/* <InterviewQuestionInfoModify labelingRefetch={refetch} /> */}
+        <InterviewQuestionInfoModify />
       </Col>
     </Row>
   );

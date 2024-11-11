@@ -8,16 +8,9 @@ import {
 } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { Button } from 'reactstrap';
-import { useMutation, useQuery } from '@tanstack/react-query';
 import L from 'lodash';
-import Swal from 'sweetalert2';
 import * as R from 'ramda';
-import {
-  fetchInterviewLabelingCreate,
-  fetchInterviewLabelingDelete,
-  fetchInterviewLabelingModify,
-  fetchInterviewLabelingSelectInfo,
-} from '~/api/fetches/fetchInterview';
+import Swal from 'sweetalert2';
 import DataCounter from '~/components/form/DataCounter';
 import FormItemInput from '~/components/form/FormItemInput';
 import FormItemSelect from '~/components/form/FormItemSelect';
@@ -29,83 +22,29 @@ import InterviewQuestionInfoButtons from './InterviewQuestionInfoButtons';
 import InterviewLabelingModal from '../InterviewLabelingModal';
 
 type Props = {
-  labelingRefetch: any;
+  labelingRefetch?: any;
 };
 
 function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
+  const questionMethods = useForm();
+  questionMethods.watch();
+
   const {
-    interviewId,
     document,
     setSelectedItem,
     setSelectedText,
     setSelectedKey,
+    setExeLabelingList,
   } = useContext(InterviewTextAnnotationContext);
-  const { labelingList, labelingPage } = document;
-  const [labelingIndex, setLabelingIndex] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
+
+  const { info } = document;
+  const { interviewText } = info || {};
+
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [count, setCount] = useState<number>(0);
   const [data, setData] = useState<any>([]);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const currentLabeling =
-    typeof labelingList !== 'undefined' ? labelingList[labelingIndex] : {};
-
-  const { data: selectInfo } = useQuery({
-    queryKey: ['interviewLabelingSelectInfo'],
-    queryFn: () =>
-      fetchInterviewLabelingSelectInfo().then(
-        ({ response }) => response.payload
-      ),
-    enabled: document !== undefined,
-  });
-
-  const createMutation = useMutation(fetchInterviewLabelingCreate, {
-    onSuccess: (data: any) => {
-      const { result, message } = data.response.payload;
-      if (result === 'error') {
-        Swal.fire({
-          icon: 'error',
-          title: `${message ?? 'API 오류'}`,
-          confirmButtonText: '확인',
-        });
-      } else {
-        Swal.fire({
-          icon: 'success',
-          title: '완료되었습니다.',
-          confirmButtonText: '확인',
-        });
-        labelingRefetch();
-      }
-    },
-  });
-
-  const modifyMutation = useMutation(fetchInterviewLabelingModify, {
-    onSuccess: (data: any) => {
-      const { result, message } = data.response.payload;
-      if (result === 'error') {
-        Swal.fire({
-          icon: 'error',
-          title: `${message ?? 'API 오류'}`,
-          confirmButtonText: '확인',
-        });
-      } else {
-        Swal.fire({
-          icon: 'success',
-          title: '완료되었습니다.',
-          confirmButtonText: '확인',
-        });
-        labelingRefetch();
-      }
-    },
-  });
-
-  const deleteMutation = useMutation(fetchInterviewLabelingDelete, {
-    onSuccess: () => {
-      labelingRefetch();
-    },
-  });
-
-  const methods = useForm();
-  methods.watch();
+  const [labelingIndex, setLabelingIndex] = useState<number>(0);
+  const [labelingList, setLabelingList] = useState<any>([]);
 
   const handleItemClick = (name: string, key: string) => {
     setSelectedItem(name);
@@ -125,10 +64,10 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
 
       // reset
       if (key === 'interviewAnswer') {
-        methods.setValue(`interviewAKey_${lastIndex}`, '');
-        methods.setValue(`interviewAContext_${lastIndex}`, '');
-        methods.setValue(`interviewAMatch_${lastIndex}`, '');
-        methods.setValue(`interviewAType_${lastIndex}`, '');
+        questionMethods.setValue(`interviewAKey_${lastIndex}`, '');
+        questionMethods.setValue(`interviewAContext_${lastIndex}`, '');
+        questionMethods.setValue(`interviewAMatch_${lastIndex}`, '');
+        questionMethods.setValue(`interviewAType_${lastIndex}`, '');
       }
     },
     [count]
@@ -159,16 +98,25 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
     if (key === 'interviewAnswer') {
       for (let i = 0; i < originKeyCount; ++i) {
         if (i < currentKeyCount) {
-          methods.setValue(`interviewAKey_${i}`, data[i].interviewAKey);
-          methods.setValue(`interviewAContext_${i}`, data[i].interviewAContext);
-          methods.setValue(`interviewAMatch_${i}`, data[i].interviewAMatch);
-          methods.setValue(`interviewAType_${i}`, data[i].interviewAType);
+          questionMethods.setValue(`interviewAKey_${i}`, data[i].interviewAKey);
+          questionMethods.setValue(
+            `interviewAContext_${i}`,
+            data[i].interviewAContext
+          );
+          questionMethods.setValue(
+            `interviewAMatch_${i}`,
+            data[i].interviewAMatch
+          );
+          questionMethods.setValue(
+            `interviewAType_${i}`,
+            data[i].interviewAType
+          );
           continue;
         }
-        methods.setValue(`interviewAKey_${i}`, '');
-        methods.setValue(`interviewAContext_${i}`, '');
-        methods.setValue(`interviewAMatch_${i}`, '');
-        methods.setValue(`interviewAType_${i}`, '');
+        questionMethods.setValue(`interviewAKey_${i}`, '');
+        questionMethods.setValue(`interviewAContext_${i}`, '');
+        questionMethods.setValue(`interviewAMatch_${i}`, '');
+        questionMethods.setValue(`interviewAType_${i}`, '');
       }
     }
   };
@@ -183,7 +131,9 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
       setData(newData);
     }
 
-    methods.setValue(name, value);
+    questionMethods.setValue(name, value);
+
+    handleLabelingList(name, value);
     handleClose();
   };
 
@@ -198,10 +148,9 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
     }).then((result) => {
       const { isConfirmed } = result;
       if (isConfirmed) {
-        deleteMutation.mutateAsync({
-          interviewId,
-          labelingId: currentLabeling.labelingId,
-        });
+        labelingList.splice(labelingIndex, 1);
+        setLabelingList(labelingList);
+        setLabelingIndex(labelingList.length - 1); // 라벨링 인덱스 초기화
       }
     });
   };
@@ -215,136 +164,99 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
 
   // 라벨링 이동
   const handleLabelingPage = ({ value }: { value: number }) => {
-    setPage(+value);
     setLabelingIndex(+value);
   };
 
-  const handleLabelingSave = (values: any) => {
-    const {
-      labelingId,
-      interviewTurnId,
-      interviewQContext,
-      interviewQTypeView,
-      interviewQPurp,
-      interviewQPost,
-    } = values;
-
-    const params = {
-      interviewId,
-      interviewTurnId,
-      interviewQContext,
-      interviewQType: interviewQTypeView?.value,
-      interviewQPurp,
-      interviewQPost,
-      interviewAnswerList: data,
-      ...(labelingId && { labelingId }),
+  const handleLabelingList = (key: any, value: any) => {
+    const labelingData = {
+      ...labelingList?.[labelingIndex],
+      [key]: value,
     };
 
-    // labelingId === null create
-    // labelingId > 0 modify
-    if (!labelingId) {
-      createMutation.mutateAsync(params);
+    if (labelingList[labelingIndex] === undefined) {
+      labelingList.push(labelingData);
     } else {
-      modifyMutation.mutateAsync(params);
+      const newData = labelingList.with(labelingIndex, labelingData);
+      setLabelingList(newData);
     }
   };
 
   const defaultValues = useMemo(() => {
-    let interviewAnswerData = {};
-
     if (labelingList?.[labelingIndex]) {
-      const {
-        createDatetime,
-        createMember,
-        createMemberName,
-        updateDatetime,
-        updateMember,
-        updateMemberName,
-        interviewAnswerList,
-        ...rest
-      } = currentLabeling;
-
-      // 답변 정보
-      if (interviewAnswerList?.length > 0) {
-        interviewAnswerData = interviewAnswerList.reduce(
-          (acc: any, cur: any, index: number) => {
-            const {
-              interviewAKey,
-              interviewAContext,
-              interviewAMatch,
-              interviewAType,
-            } = cur;
-            const interviewAKeyData = {
-              [`interviewAKey_${index}`]: interviewAKey,
-            };
-            const interviewAContextData = {
-              [`interviewAContext_${index}`]: interviewAContext,
-            };
-            const interviewAMatchData = {
-              [`interviewAMatch_${index}`]: interviewAMatch,
-            };
-            const interviewATypeData = {
-              [`interviewAType_${index}`]: interviewAType,
-            };
-            return {
-              ...acc,
-              ...interviewAKeyData,
-              ...interviewAContextData,
-              ...interviewAMatchData,
-              ...interviewATypeData,
-            };
-          },
-          {}
-        );
-      }
-      return { ...rest, ...interviewAnswerData };
+      return {
+        ...labelingList?.[labelingIndex],
+        interviewQType: labelingList?.[labelingIndex]?.interviewQType ?? null,
+      };
+    } else {
+      questionMethods.reset();
+      setCount(0);
+      setData([]);
+      return {
+        interviewQType: labelingList?.[labelingIndex]?.interviewQType ?? null,
+      };
     }
   }, [labelingList, labelingIndex]);
 
   const init = () => {
     L.flow(L.toPairs, (data) => {
       L.forEach(data, ([name, value]: any) => {
-        methods.register(name);
-        methods.setValue(name, value);
+        questionMethods.register(name);
+        questionMethods.setValue(name, value);
       });
     })(defaultValues);
   };
 
   useEffect(() => {
     if (defaultValues) {
-      methods.reset(); // 이전 values reset
+      questionMethods.reset(); // 이전 values reset
       init();
     }
   }, [defaultValues]);
 
   useEffect(() => {
-    if (currentLabeling) {
-      if (currentLabeling.labelingId) {
-        setCount(currentLabeling?.interviewAnswerList?.length);
-        const newData = currentLabeling?.interviewAnswerList.map(
-          (item: any) => {
-            const {
-              interviewAMatchView,
-              interviewAMatchName,
-              interviewATypeView,
-              interviewATypeName,
-              ...rest
-            } = item;
-            return { ...rest };
-          }
-        );
-        setData(newData);
+    if (labelingList?.[labelingIndex]) {
+      const currentLabeling = labelingList?.[labelingIndex];
+      if (Object.keys(currentLabeling).length > 0) {
+        const interviewAnswerList = Object.keys(currentLabeling)
+          .reduce((acc: any, cur: any) => {
+            const [key, index] = cur.split('_');
+            if (
+              /interviewAKey/.exec(key) ||
+              /interviewAContext/.exec(key) ||
+              /interviewAType/.exec(key) ||
+              /interviewAMatch/.exec(key)
+            ) {
+              const newData = { ...acc[index], [key]: currentLabeling[cur] };
+              acc[index] = newData;
+              return acc;
+            }
+            return acc;
+          }, [])
+          .filter((el: any) => el);
+
+        setCount(interviewAnswerList?.length);
+        setData(interviewAnswerList);
       } else {
         setCount(0);
         setData([]);
       }
     }
-  }, [currentLabeling, labelingIndex]);
+  }, [labelingList, labelingIndex]);
+
+  useEffect(() => {
+    setExeLabelingList(labelingList);
+  }, [labelingList]);
 
   return (
     <CollapseBox title="문항별 정보" isOpen={true}>
-      <FormProvider {...methods}>
-        <form>
+      {!interviewText ? (
+        <div className="p-2">
+          <span className="d-flex justify-content-center py-2">
+            데이터가 없습니다.
+          </span>
+        </div>
+      ) : (
+        <FormProvider {...questionMethods}>
           <div className="px-3 py-2">
             <FormItemInput
               label="턴 순서"
@@ -364,9 +276,25 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
             />
             <FormItemSelect
               label="질문 분류"
-              name="interviewQTypeView"
+              name="interviewQType"
               isMulti={false}
-              options={selectInfo?.interviewqtype}
+              options={[
+                {
+                  label: '주요 질문',
+                  value: 'intervieqtype001',
+                },
+                {
+                  label: '후속 질문',
+                  value: 'intervieqtype002',
+                },
+                {
+                  label: '기타',
+                  value: 'intervieqtype900',
+                },
+              ]}
+              onProductChange={(value) => {
+                handleLabelingList('interviewQType', value);
+              }}
             />
             <FormItemInput
               label="질문 목적"
@@ -451,7 +379,10 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
                               true
                             )
                           }
-                          items={selectInfo?.interviewamatch}
+                          items={[
+                            { label: '일치', value: '일치' },
+                            { label: '불일치', value: '불일치' },
+                          ]}
                           value={item.interviewAMatch}
                         />
                       </div>
@@ -467,7 +398,10 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
                               true
                             )
                           }
-                          items={selectInfo?.interviewatype}
+                          items={[
+                            { label: '있음', value: '있음' },
+                            { label: '없음', value: '없음' },
+                          ]}
                           value={item.interviewAType}
                         />
                       </div>
@@ -479,28 +413,32 @@ function InterviewQuestionInfoModify({ labelingRefetch }: Props) {
           </div>
           <InterviewQuestionInfoButtons
             labelingListLength={labelingList?.length}
-            labelingId={currentLabeling?.labelingId}
+            labelingId={0}
             labelingIndex={labelingIndex}
             setLabelingIndex={setLabelingIndex}
             onDelete={handleDelete}
-            onSave={methods.handleSubmit(handleLabelingSave)}
           />
-          <div className="px-2 py-3">
-            <Selectbox
-              name="labelingPage"
-              placeholder="라벨링 이동"
-              onChange={handleLabelingPage}
-              items={labelingPage}
-              value={page}
-            />
-          </div>
-        </form>
-        <InterviewLabelingModal
-          isOpen={isOpen}
-          onClose={handleClose}
-          onItemSave={handleItemSave}
-        />
-      </FormProvider>
+          {labelingList?.length > 0 && (
+            <div className="px-2">
+              <Selectbox
+                name="labelingPage"
+                placeholder="라벨링 이동"
+                onChange={handleLabelingPage}
+                items={labelingList.map((_: any, index: number) => ({
+                  label: index,
+                  value: index,
+                }))}
+                value={labelingIndex}
+              />
+            </div>
+          )}
+          <InterviewLabelingModal
+            isOpen={isOpen}
+            onClose={handleClose}
+            onItemSave={handleItemSave}
+          />
+        </FormProvider>
+      )}
     </CollapseBox>
   );
 }
