@@ -8,17 +8,9 @@ import {
 } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { Button } from 'reactstrap';
-import { useMutation, useQuery } from '@tanstack/react-query';
 import L from 'lodash';
 import * as R from 'ramda';
 import Swal from 'sweetalert2';
-import {
-  fetchSurveyLabelingCreate,
-  fetchSurveyLabelingDelete,
-  fetchSurveyLabelingModify,
-  fetchSurveyLabelingSelectInfo,
-  fetchSurveyRequestInspection,
-} from '~/api/fetches/fetchSurvey';
 import DataCounter from '~/components/form/DataCounter';
 import FormItemInput from '~/components/form/FormItemInput';
 import FormItemSelect from '~/components/form/FormItemSelect';
@@ -37,69 +29,24 @@ type Props = {
 };
 
 function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
+  const questionMethods = useForm();
+  questionMethods.watch();
+
   const {
-    surveyId,
     document,
     setSelectedItem,
     setSelectedText,
     setSelectedKey,
+    setExeLabelingList,
   } = useContext(SurveyTextAnnotationContext);
-  const { labelingList, labelingPage } = document;
+  const { info } = document;
+  const { surveyText } = info || {};
 
-  console.log('document', document);
-  const [labelingIndex, setLabelingIndex] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [count, setCount] = useState<typeof InitialCount>(InitialCount);
   const [data, setData] = useState<any>(InitialLabelingData);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const currentLabeling =
-    typeof labelingList !== 'undefined' ? labelingList[labelingIndex] : {};
-
-  const { data: selectInfo } = useQuery({
-    queryKey: ['surveyLabelingSelectInfo'],
-    queryFn: () =>
-      fetchSurveyLabelingSelectInfo().then(({ response }) => response.payload),
-    enabled: document !== undefined,
-  });
-
-  const handleMutationSuccess = (data: any) => {
-    const { result, message } = data.response.payload;
-    if (result === 'error') {
-      Swal.fire({
-        icon: 'error',
-        title: `${message ?? 'API 오류'}`,
-        confirmButtonText: '확인',
-      });
-    } else {
-      Swal.fire({
-        icon: 'success',
-        title: '완료되었습니다.',
-        confirmButtonText: '확인',
-      });
-      labelingRefetch();
-    }
-  };
-
-  const createMutation = useMutation(fetchSurveyLabelingCreate, {
-    onSuccess: handleMutationSuccess,
-  });
-
-  const modifyMutation = useMutation(fetchSurveyLabelingModify, {
-    onSuccess: handleMutationSuccess,
-  });
-
-  const deleteMutation = useMutation(fetchSurveyLabelingDelete, {
-    onSuccess: () => {
-      labelingRefetch();
-    },
-  });
-
-  const inspectionRequestMutation = useMutation(fetchSurveyRequestInspection, {
-    onSuccess: handleMutationSuccess,
-  });
-
-  const methods = useForm();
-  methods.watch();
+  const [labelingIndex, setLabelingIndex] = useState<number>(0);
+  const [labelingList, setLabelingList] = useState<any>([]);
 
   const handleItemClick = (name: string, key: string) => {
     setSelectedItem(name);
@@ -120,10 +67,10 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
 
       // reset
       if (key === 'surveyAChoices') {
-        methods.setValue(`${key}_${lastIndex}`, '');
+        questionMethods.setValue(`${key}_${lastIndex}`, '');
       } else if (key === 'surveyLogic') {
-        methods.setValue(`surveyNextQNum_${lastIndex}`, '');
-        methods.setValue(`surveyNextQCondition_${lastIndex}`, '');
+        questionMethods.setValue(`surveyNextQNum_${lastIndex}`, '');
+        questionMethods.setValue(`surveyNextQCondition_${lastIndex}`, '');
       }
     },
     [count]
@@ -141,23 +88,26 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
     if (key === 'surveyAChoices') {
       for (let i = 0; i < originKeyCount; ++i) {
         if (i < currentKeyCount) {
-          methods.setValue(`${key}_${i}`, data[key][i]);
+          questionMethods.setValue(`${key}_${i}`, data[key][i]);
           continue;
         }
-        methods.setValue(`${key}_${i}`, '');
+        questionMethods.setValue(`${key}_${i}`, '');
       }
     } else if (key === 'surveyLogic') {
       for (let i = 0; i < originKeyCount; ++i) {
         if (i < currentKeyCount) {
-          methods.setValue(`surveyNextQNum_${i}`, data[key][i].surveyNextQNum);
-          methods.setValue(
+          questionMethods.setValue(
+            `surveyNextQNum_${i}`,
+            data[key][i].surveyNextQNum
+          );
+          questionMethods.setValue(
             `surveyNextQCondition_${i}`,
             data[key][i].surveyNextQCondition
           );
           continue;
         }
-        methods.setValue(`surveyNextQNum_${i}`, '');
-        methods.setValue(`surveyNextQCondition_${i}`, '');
+        questionMethods.setValue(`surveyNextQNum_${i}`, '');
+        questionMethods.setValue(`surveyNextQCondition_${i}`, '');
       }
     }
   };
@@ -191,7 +141,9 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
       }
     }
 
-    methods.setValue(name, value);
+    questionMethods.setValue(name, value); // 현재 라벨링
+
+    handleLabelingList(name, value);
     handleClose();
   };
 
@@ -206,10 +158,9 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
     }).then((result) => {
       const { isConfirmed } = result;
       if (isConfirmed) {
-        deleteMutation.mutateAsync({
-          surveyId,
-          labelingId: currentLabeling.labelingId,
-        });
+        labelingList.splice(labelingIndex, 1);
+        setLabelingList(labelingList);
+        setLabelingIndex(labelingList.length - 1); // 라벨링 인덱스 초기화
       }
     });
   };
@@ -223,126 +174,90 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
 
   // 라벨링 이동
   const handleLabelingPage = ({ value }: { value: number }) => {
-    setPage(+value);
     setLabelingIndex(+value);
   };
 
-  const handleRequest = () => {
-    const params = { labelingId: currentLabeling.labelingId };
-    inspectionRequestMutation.mutateAsync(params);
-  };
-
-  const handleLabelingSave = (values: any) => {
-    const {
-      labelingId,
-      surveyQNum,
-      surveyContext,
-      surveyQPart,
-      surveyQPurpose,
-      surveyATypeView,
-    } = values;
-
-    const params = {
-      surveyId,
-      surveyQNum,
-      surveyContext,
-      surveyQPart,
-      surveyQPurpose,
-      surveyAType: surveyATypeView?.value,
-      surveyAChoicesParam: R.reject((val) => !val, data.surveyAChoices),
-      surveyLogicArray: data.surveyLogic,
-      ...(labelingId && { labelingId }),
+  const handleLabelingList = (key: any, value: any) => {
+    const labelingData = {
+      ...labelingList?.[labelingIndex],
+      [key]: value,
     };
 
-    // labelingId === null create
-    // labelingId > 0 modify
-    if (!labelingId) {
-      createMutation.mutateAsync(params);
+    if (labelingList[labelingIndex] === undefined) {
+      labelingList.push(labelingData);
     } else {
-      modifyMutation.mutateAsync(params);
+      const newData = labelingList.with(labelingIndex, labelingData);
+      setLabelingList(newData);
     }
   };
 
   const defaultValues = useMemo(() => {
-    let surveyAChoicesData = {};
-    let surveyLogicData = {};
-
-    console.log('labelingIndex', labelingIndex, labelingList);
-    console.log(444, labelingList?.[labelingIndex]);
     if (labelingList?.[labelingIndex]) {
-      const {
-        createDatetime,
-        createMember,
-        createMemberName,
-        updateDatetime,
-        updateMember,
-        updateMemberName,
-        surveyAChoicesArray,
-        surveyLogicArray,
-        ...rest
-      } = currentLabeling;
-
-      // 선택지 내용
-      if (surveyAChoicesArray.length > 0) {
-        surveyAChoicesData = surveyAChoicesArray.reduce(
-          (acc: any, cur: any, index: number) => {
-            const data = { [`surveyAChoices_${index}`]: cur };
-            return { ...acc, ...data };
-          },
-          {}
-        );
-      }
-
-      // 로직
-      if (surveyLogicArray.length > 0) {
-        surveyLogicData = surveyLogicArray.reduce(
-          (acc: any, cur: any, index: number) => {
-            const { surveyNextQNum, surveyNextQCondition } = cur;
-            const qnumData = { [`surveyNextQNum_${index}`]: surveyNextQNum };
-            const qconditionData = {
-              [`surveyNextQCondition_${index}`]: surveyNextQCondition,
-            };
-            return { ...acc, ...qnumData, ...qconditionData };
-          },
-          {}
-        );
-      }
-      return { ...rest, ...surveyAChoicesData, ...surveyLogicData };
+      return {
+        ...labelingList?.[labelingIndex],
+        surveyAType: labelingList?.[labelingIndex]?.surveyAType ?? null,
+      };
+    } else {
+      questionMethods.reset();
+      setCount(InitialCount);
+      setData(InitialLabelingData);
+      return {
+        surveyAType: labelingList?.[labelingIndex]?.surveyAType ?? null,
+      };
     }
   }, [labelingList, labelingIndex]);
 
   const init = () => {
     L.flow(L.toPairs, (data) => {
       L.forEach(data, ([name, value]: any) => {
-        methods.register(name);
-        methods.setValue(name, value);
+        questionMethods.register(name);
+        questionMethods.setValue(name, value);
       });
     })(defaultValues);
   };
 
   useEffect(() => {
     if (defaultValues) {
-      console.log('defaultValues', defaultValues);
-      methods.reset(); // 이전 values reset
+      questionMethods.reset(); // 이전 values reset
       init();
     }
   }, [defaultValues]);
 
   useEffect(() => {
-    if (currentLabeling) {
-      if (currentLabeling.labelingId) {
+    if (labelingList?.[labelingIndex]) {
+      const currentLabeling = labelingList?.[labelingIndex];
+      if (Object.keys(currentLabeling).length > 0) {
+        const surveyAChoicesArray = Object.keys(currentLabeling)
+          .reduce((acc: any, cur: any) => {
+            if (/surveyAChoices/.exec(cur))
+              return [...acc, currentLabeling[cur]];
+            return acc;
+          }, [])
+          .filter((el: any) => el);
+
+        const surveyLogicArray = Object.keys(currentLabeling)
+          .reduce((acc: any, cur: any) => {
+            const [key, index] = cur.split('_');
+            if (
+              /surveyNextQNum/.exec(key) ||
+              /surveyNextQCondition/.exec(key)
+            ) {
+              const newData = { ...acc[index], [key]: currentLabeling[cur] };
+              acc[index] = newData;
+              return acc;
+            }
+            return acc;
+          }, [])
+          .filter((el: any) => el);
+
         setCount({
-          surveyAChoices: currentLabeling.surveyAChoicesArray.length,
-          surveyLogic: currentLabeling.surveyLogicArray.length,
+          surveyAChoices: surveyAChoicesArray.length,
+          surveyLogic: surveyLogicArray.length,
         });
         setData({
-          surveyAChoices: currentLabeling.surveyAChoicesArray,
-          surveyLogic: currentLabeling.surveyLogicArray.map((item: any) => {
-            const { surveyNextQNum, surveyNextQCondition } = item;
-            return {
-              surveyNextQNum,
-              surveyNextQCondition,
-            };
+          surveyAChoices: surveyAChoicesArray,
+          surveyLogic: surveyLogicArray.map((item: any) => {
+            return item;
           }),
         });
       } else {
@@ -350,12 +265,22 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
         setData(InitialLabelingData);
       }
     }
-  }, [currentLabeling, labelingIndex]);
+  }, [labelingList, labelingIndex]);
+
+  useEffect(() => {
+    setExeLabelingList(labelingList);
+  }, [labelingList]);
 
   return (
     <CollapseBox title="문항별 정보" isOpen={true}>
-      <FormProvider {...methods}>
-        <form>
+      {!surveyText ? (
+        <div className="p-2">
+          <span className="d-flex justify-content-center py-2">
+            데이터가 없습니다.
+          </span>
+        </div>
+      ) : (
+        <FormProvider {...questionMethods}>
           <div className="px-3 py-2">
             <FormItemInput
               label="문항 번호"
@@ -387,9 +312,29 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
             />
             <FormItemSelect
               label="답변 유형"
-              name="surveyATypeView"
+              name="surveyAType"
               isMulti={false}
-              options={selectInfo?.surveyAType}
+              options={[
+                {
+                  label: 'single',
+                  value: 'surveyatype001',
+                },
+                {
+                  label: 'rank',
+                  value: 'surveyatype002',
+                },
+                {
+                  label: 'multi',
+                  value: 'surveyatype003',
+                },
+                {
+                  label: 'open',
+                  value: 'surveyatype004',
+                },
+              ]}
+              onProductChange={(value) => {
+                handleLabelingList('surveyAType', value);
+              }}
             />
             <FormItemText label="선택지 개수" value={count.surveyAChoices} />
             <div className="d-flex justify-content-between py-1 align-items-center">
@@ -451,29 +396,32 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
           </div>
           <SurveyQuestionInfoButtons
             labelingListLength={labelingList?.length}
-            labelingId={currentLabeling?.labelingId}
+            labelingId={0}
             labelingIndex={labelingIndex}
             setLabelingIndex={setLabelingIndex}
             onDelete={handleDelete}
-            onSave={methods.handleSubmit(handleLabelingSave)}
-            onRequest={handleRequest}
           />
-          <div className="px-2 py-3">
-            <Selectbox
-              name="labelingPage"
-              placeholder="라벨링 이동"
-              onChange={handleLabelingPage}
-              items={labelingPage}
-              value={page}
-            />
-          </div>
-        </form>
-        <SurveyLabelingModal
-          isOpen={isOpen}
-          onClose={handleClose}
-          onItemSave={handleItemSave}
-        />
-      </FormProvider>
+          {labelingList?.length > 0 && (
+            <div className="px-2">
+              <Selectbox
+                name="labelingPage"
+                placeholder="라벨링 이동"
+                onChange={handleLabelingPage}
+                items={labelingList.map((_: any, index: number) => ({
+                  label: index,
+                  value: index,
+                }))}
+                value={labelingIndex}
+              />
+            </div>
+          )}
+          <SurveyLabelingModal
+            isOpen={isOpen}
+            onClose={handleClose}
+            onItemSave={handleItemSave}
+          />
+        </FormProvider>
+      )}
     </CollapseBox>
   );
 }

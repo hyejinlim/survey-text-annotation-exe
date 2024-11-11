@@ -6,11 +6,12 @@ import * as styles from './styles';
 
 function ToolHeader() {
   const methods = useFormContext();
-  const { document } = useContext(SurveyTextAnnotationContext);
+  const { document, exeLabelingList } = useContext(SurveyTextAnnotationContext);
   const { info } = document;
 
   const handleClick = (values: any) => {
     console.log('values', values);
+    console.log('exeLabelingList', exeLabelingList);
     const {
       surveyPurpose,
       surveyMethod,

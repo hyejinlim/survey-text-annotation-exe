@@ -11,6 +11,7 @@ export default function AnnotationProvider({ children }: Props) {
   const [selectedItem, setSelectedItem] = useState<string>(''); // 선택된 텍스트 이름
   const [selectedText, setSelectedText] = useState<string>(''); // 선택된 텍스트 데이터
   const [selectedKey, setSelectedKey] = useState<string>(''); // 선택된 텍스트 key
+  const [exeLabelingList, setExeLabelingList] = useState<any>([]); // 라벨링 리스트
 
   return (
     <SurveyTextAnnotationContext.Provider
@@ -20,11 +21,13 @@ export default function AnnotationProvider({ children }: Props) {
         selectedText,
         selectedItem,
         selectedKey,
+        exeLabelingList,
         setSurveyId,
         setDocument,
         setSelectedText,
         setSelectedItem,
         setSelectedKey,
+        setExeLabelingList,
       }}
     >
       {children}

@@ -3,7 +3,7 @@ import { Col, Row } from 'reactstrap';
 import CollapseBox from '~/components/shared/CollapseBox';
 import SurveyDataModify from '~/components/survey/SurveyDataModify';
 import * as styles from './styles';
-// import SurveyQuestionInfoModify from '../SurveyQuestionInfoModify';
+import SurveyQuestionInfoModify from '../SurveyQuestionInfoModify';
 import SurveyTextAnnotation from '../SurveyTextAnnotation';
 
 function SurveyTextAnnotationTool() {
@@ -18,7 +18,7 @@ function SurveyTextAnnotationTool() {
           <SurveyDataModify />
         </CollapseBox>
         {/* 문항별 정보 === 라벨링 form */}
-        {/* <SurveyQuestionInfoModify /> */}
+        <SurveyQuestionInfoModify />
       </Col>
     </Row>
   );

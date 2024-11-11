@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { Fragment, memo } from 'react';
 import { Button } from 'reactstrap';
 import clsx from 'clsx';
 
@@ -8,8 +8,8 @@ type Props = {
   labelingIndex: number;
   setLabelingIndex: React.Dispatch<React.SetStateAction<number>>;
   onDelete: () => void;
-  onSave: () => void;
-  onRequest: () => void;
+  onSave?: () => void;
+  onRequest?: () => void;
 };
 
 function SurveyQuestionInfoButtons({
@@ -32,34 +32,28 @@ function SurveyQuestionInfoButtons({
   return (
     <div
       className={clsx('pt-4 pb-4 d-flex px-2', {
-        'justify-content-between': labelingListLength > 1,
-        'justify-content-center': labelingListLength === 1,
+        'justify-content-between': labelingListLength > 0,
+        'justify-content-center': labelingListLength === 0,
       })}
     >
-      {labelingListLength > 1 && (
-        <Button color="light" onClick={handlePrev}>
-          <i className="mdi mdi-arrow-left-bold" />
-        </Button>
-      )}
-      <div className="d-flex gap-1">
-        <Button color="info" type="submit" onClick={onSave}>
-          저장
-        </Button>
-        {labelingId && (
-          <>
+      {labelingListLength > 0 && (
+        <Fragment>
+          <Button
+            color="light"
+            onClick={handlePrev}
+            disabled={labelingIndex === 0}
+          >
+            <i className="mdi mdi-arrow-left-bold" />
+          </Button>
+          <div className="d-flex gap-1">
             <Button color="danger" onClick={onDelete}>
               삭제
             </Button>
-            <Button onClick={onRequest} color="success">
-              상위검수요청
-            </Button>
-          </>
-        )}
-      </div>
-      {labelingListLength > 1 && (
-        <Button color="light" onClick={handleNext}>
-          <i className="mdi mdi-arrow-right-bold" />
-        </Button>
+          </div>
+          <Button color="light" onClick={handleNext}>
+            <i className="mdi mdi-arrow-right-bold" />
+          </Button>
+        </Fragment>
       )}
     </div>
   );
