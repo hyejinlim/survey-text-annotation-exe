@@ -36,6 +36,11 @@ function SelectTextData() {
           }
         }
       });
+    } else {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // 파일 선택 창 비우기
+        fileInputRef.current.click();
+      }
     }
   };
 
