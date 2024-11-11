@@ -1,46 +1,63 @@
 import { memo, useContext } from 'react';
+import { useFormContext } from 'react-hook-form';
 import { Button } from 'reactstrap';
-import { useMutation } from '@tanstack/react-query';
-import Swal from 'sweetalert2';
-import { fetchSurveyStatusModify } from '~/api/fetches/fetchSurvey';
 import { SurveyTextAnnotationContext } from '~/libs/contexts/SurveyTextAnnotationContext';
 import * as styles from './styles';
 
 function ToolHeader() {
-  const { document, surveyId } = useContext(SurveyTextAnnotationContext);
+  const methods = useFormContext();
+  const { document } = useContext(SurveyTextAnnotationContext);
   const { info } = document;
 
-  const updateStatusMutation = useMutation(fetchSurveyStatusModify, {
-    onSuccess: (data: any) => {
-      const { result, message } = data.response.payload;
-      if (result === 'error') {
-        Swal.fire({
-          icon: 'error',
-          title: `${message ?? 'API 오류'}`,
-          confirmButtonText: '확인',
-        });
-      } else {
-        Swal.fire({
-          icon: 'success',
-          title: '설문지 작업이 완료되었습니다.',
-          confirmButtonText: '확인',
-        });
-      }
-    },
-  });
-
-  const handleClick = () => {
-    const params = {
-      surveyId,
-      surveyStatus: 'Y',
+  const handleClick = (values: any) => {
+    console.log('values', values);
+    const {
+      surveyPurpose,
+      surveyMethod,
+      surveyIndustry,
+      surveyTopic,
+      surveyTopicDetail,
+      surveyKeyword,
+      surveyCalculation,
+      surveyCutoff,
+      surveyCredibility,
+      surveyValidity,
+      surveyGender,
+      surveyAge,
+      surveyLocation,
+    } = values;
+    const jsonData = {
+      survey_info: {
+        id: '',
+        survey_purpose: surveyPurpose,
+        method: surveyMethod?.label,
+        industry: surveyIndustry?.label,
+        topic: {
+          topic: surveyTopic?.label,
+          topic_detailed: surveyTopicDetail?.label,
+        },
+        keyword: surveyKeyword,
+        q_result: {
+          calculation: surveyCalculation,
+          cutoff: surveyCutoff,
+          credibility: surveyCredibility,
+          validity: surveyValidity,
+        },
+        target_info: {
+          gender: surveyGender?.label,
+          age: surveyAge?.map(({ label }: any) => label),
+          location: surveyLocation,
+        },
+      },
     };
-    updateStatusMutation.mutateAsync(params);
+
+    console.log('jsonData', jsonData);
   };
 
   return (
     <div css={styles.header}>
       <div className="font-size-20 fw-semibold">[12-1] {info?.surveyTitle}</div>
-      <Button color="primary" onClick={handleClick}>
+      <Button color="primary" onClick={methods.handleSubmit(handleClick)}>
         설문지 작업 완료
       </Button>
     </div>

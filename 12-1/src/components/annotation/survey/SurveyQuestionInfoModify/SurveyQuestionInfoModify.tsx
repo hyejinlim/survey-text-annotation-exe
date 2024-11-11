@@ -10,8 +10,8 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { Button } from 'reactstrap';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import L from 'lodash';
-import Swal from 'sweetalert2';
 import * as R from 'ramda';
+import Swal from 'sweetalert2';
 import {
   fetchSurveyLabelingCreate,
   fetchSurveyLabelingDelete,
@@ -33,7 +33,7 @@ import { InitialCount, InitialLabelingData } from '../../constants';
 import SurveyLabelingModal from '../SurveyLabelingModal';
 
 type Props = {
-  labelingRefetch: any;
+  labelingRefetch?: any;
 };
 
 function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
