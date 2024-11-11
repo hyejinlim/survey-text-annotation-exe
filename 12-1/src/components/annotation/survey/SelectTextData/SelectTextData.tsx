@@ -7,23 +7,41 @@ import {
   useState,
 } from 'react';
 import { Button } from 'reactstrap';
+import Swal from 'sweetalert2';
 import { SurveyTextAnnotationContext } from '~/libs/contexts/SurveyTextAnnotationContext';
 import * as styles from './styles';
 
 function SelectTextData() {
-  const { setDocument } = useContext(SurveyTextAnnotationContext);
+  const { setDocument, setReset, exeLabelingList } = useContext(
+    SurveyTextAnnotationContext
+  );
   const [loading, setLoading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleClickFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // 파일 선택 창 비우기
-      fileInputRef.current.click();
+    if (exeLabelingList.length > 0) {
+      Swal.fire({
+        icon: 'info',
+        title: '파일을 변경하시겠습니까?',
+        text: '작성하신 내용은 저장되지 않습니다.',
+        showCancelButton: true,
+        confirmButtonText: '확인',
+        cancelButtonText: `취소`,
+      }).then((result) => {
+        const { isConfirmed } = result;
+        if (isConfirmed) {
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''; // 파일 선택 창 비우기
+            fileInputRef.current.click();
+          }
+        }
+      });
     }
   };
 
   const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
+    setReset(true);
     const files = event.target.files;
     if (!files) return;
 
@@ -36,52 +54,9 @@ function SelectTextData() {
             surveyText: fileReader.result,
             surveyTitle: files[0]?.name,
           },
-          // labelingList: [
-          //   {
-          //     createMember: 0,
-          //     createMemberName: null,
-          //     createDatetime: "",
-          //     updateMember: 0,
-          //     updateMemberName: null,
-          //     updateDatetime: "",
-          //     labelingId: null,
-          //     surveyId: null,
-          //     surveyQNum: null,
-          //     surveyContext: null,
-          //     surveyQPart: null,
-          //     surveyQPurpose: null,
-          //     surveyAType: null,
-          //     surveyATypeName: null,
-          //     surveyAChoices: null,
-          //     surveyLogicArray: [],
-          //     surveyAChoicesParam: null,
-          //     surveyAChoicesArray: [],
-          //     surveyATypeView: null,
-          //   },
-          //   {
-          //     createMember: 0,
-          //     createMemberName: null,
-          //     createDatetime: "",
-          //     updateMember: 0,
-          //     updateMemberName: null,
-          //     updateDatetime: "",
-          //     labelingId: null,
-          //     surveyId: null,
-          //     surveyQNum: null,
-          //     surveyContext: null,
-          //     surveyQPart: null,
-          //     surveyQPurpose: null,
-          //     surveyAType: null,
-          //     surveyATypeName: null,
-          //     surveyAChoices: null,
-          //     surveyLogicArray: [],
-          //     surveyAChoicesParam: null,
-          //     surveyAChoicesArray: [],
-          //     surveyATypeView: null,
-          //   },
-          // ],
         });
         setLoading(false);
+        setReset(false);
       }
     };
   };

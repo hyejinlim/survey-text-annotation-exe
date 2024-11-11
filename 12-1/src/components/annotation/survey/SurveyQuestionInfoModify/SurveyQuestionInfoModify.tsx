@@ -33,6 +33,7 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
   questionMethods.watch();
 
   const {
+    reset,
     document,
     setSelectedItem,
     setSelectedText,
@@ -270,6 +271,10 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
   useEffect(() => {
     setExeLabelingList(labelingList);
   }, [labelingList]);
+
+  useEffect(() => {
+    if (reset) setLabelingList([]);
+  }, [reset]);
 
   return (
     <CollapseBox title="문항별 정보" isOpen={true}>

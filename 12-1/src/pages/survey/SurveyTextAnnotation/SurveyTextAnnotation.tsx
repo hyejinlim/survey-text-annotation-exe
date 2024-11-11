@@ -1,14 +1,18 @@
-import { useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { Col, Row } from 'reactstrap';
 import L from 'lodash';
 import SelectTextData from '~/components/annotation/survey/SelectTextData';
 import SurveyTextAnnotationTool from '~/components/annotation/survey/SurveyTextAnnotationTool';
 import ToolHeader from '~/components/annotation/survey/ToolHeader';
-import SurveyTextAnnotationContext from '~/libs/contexts/SurveyTextAnnotationContext';
+import SurveyTextAnnotationContext, {
+  SurveyTextAnnotationContext as Context,
+} from '~/libs/contexts/SurveyTextAnnotationContext';
 import * as styles from './styles';
 
 function SurveyTextAnnotation() {
+  const { reset } = useContext(Context);
+
   const methods = useForm();
   methods.watch();
 
@@ -29,9 +33,9 @@ function SurveyTextAnnotation() {
       surveyGender: null,
       surveyAge: null,
       surveyLocation: '',
-      surveyKeyword: '',
+      surveyKeyword: [],
     };
-  }, []);
+  }, [reset]);
 
   const init = () => {
     L.flow(L.toPairs, (data) => {
