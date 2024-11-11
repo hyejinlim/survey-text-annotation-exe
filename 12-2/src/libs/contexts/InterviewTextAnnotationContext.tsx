@@ -13,6 +13,8 @@ export default function AnnotationProvider({ children }: Props) {
   const [selectedKey, setSelectedKey] = useState<string>(''); // 선택된 텍스트 key
   const [labelingIndex, setLabelingIndex] = useState<number>(0);
   const [labelCheckList, setLabelCheckList] = useState<any>([]); // 선택한 인터뷰 라벨 검수 체크리스트
+  const [exeLabelingList, setExeLabelingList] = useState<any>([]); // 라벨링 리스트
+  const [reset, setReset] = useState<boolean>(false); // 초기화
 
   return (
     <InterviewTextAnnotationContext.Provider
@@ -24,6 +26,8 @@ export default function AnnotationProvider({ children }: Props) {
         selectedKey,
         labelingIndex,
         labelCheckList,
+        exeLabelingList,
+        reset,
         setInterviewId,
         setDocument,
         setSelectedText,
@@ -31,6 +35,8 @@ export default function AnnotationProvider({ children }: Props) {
         setSelectedKey,
         setLabelingIndex,
         setLabelCheckList,
+        setExeLabelingList,
+        setReset,
       }}
     >
       {children}

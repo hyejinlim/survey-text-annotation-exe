@@ -1,18 +1,15 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useContext, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { useParams } from 'react-router';
 import { Button } from 'reactstrap';
-import { useQuery } from '@tanstack/react-query';
 import L from 'lodash';
 import * as R from 'ramda';
-import { fetchInterviewDetailSelectInfo } from '~/api/fetches/fetchInterview';
 import DataCounter from '~/components/form/DataCounter';
 import FormItemInput from '~/components/form/FormItemInput';
 import FormItemSelect from '~/components/form/FormItemSelect';
 import FormItemTagInput from '~/components/form/FormItemTagInput';
 import Selectbox from '~/components/shared/Selectbox';
 import TextField from '~/components/shared/TextField';
-import { useInterviewDetailDataQuery } from '~/hooks';
+import { InterviewTextAnnotationContext } from '~/libs/contexts/InterviewTextAnnotationContext';
 
 type Props = {
   data?: any;
@@ -20,84 +17,18 @@ type Props = {
   readonly?: boolean;
 };
 
-function InterviewDataModify({ data, setData, readonly = false }: Props) {
+function InterviewDataModify({
+  data: dataTest,
+  setData: setDataTest,
+  readonly = false,
+}: Props) {
   const methods = useFormContext();
-  const { interviewId } = useParams();
+  const { document } = useContext(InterviewTextAnnotationContext);
+  const { info } = document;
+  const { interviewText } = info || {};
+
   const [count, setCount] = useState<number>(0);
-
-  const { data: interviewData } = useInterviewDetailDataQuery(interviewId!);
-
-  const { data: selectInfo } = useQuery({
-    queryKey: ['interviewDetailSelectInfo'],
-    queryFn: () =>
-      fetchInterviewDetailSelectInfo().then(({ response }) => response.payload),
-  });
-
-  const {
-    selecttopic,
-    selecttopicdt,
-    selectsource,
-    selectsty,
-    selecttype,
-    selectgender,
-    selectage,
-  } = selectInfo || {};
-
-  const defaultValues = useMemo(() => {
-    if (interviewData) {
-      let intervieweeData = {};
-      const pickData = L.pick(interviewData.info, [
-        'interviewTitle',
-        'interviewPurpose',
-        'interviewTopicView',
-        'interviewTopicDetailView',
-        'interviewKeywordArray',
-        'interviewSourceView',
-        'interviewStyleView',
-        'interviewTypeView',
-        'intervieweeGender',
-        'intervieweeAge',
-        'intervieweeList',
-        'interviewStatusText',
-      ]);
-
-      // 인터뷰 대상자
-      if (interviewData.info.intervieweeList.length > 0) {
-        intervieweeData = interviewData.info.intervieweeList.reduce(
-          (acc: any, cur: any, index: number) => {
-            const {
-              intervieweeKey,
-              intervieweeGender,
-              intervieweeAge,
-              intervieweeLocation,
-            } = cur;
-            const intervieweeKeyData = {
-              [`intervieweeKey_${index}`]: intervieweeKey,
-            };
-            const intervieweeGenderData = {
-              [`intervieweeGender_${index}`]: intervieweeGender,
-            };
-            const intervieweeAgeData = {
-              [`intervieweeAge_${index}`]: intervieweeAge,
-            };
-            const intervieweeLocationData = {
-              [`intervieweeLocation_${index}`]: intervieweeLocation,
-            };
-            return {
-              ...acc,
-              ...intervieweeKeyData,
-              ...intervieweeGenderData,
-              ...intervieweeAgeData,
-              ...intervieweeLocationData,
-            };
-          },
-          {}
-        );
-      }
-
-      return { ...pickData, ...intervieweeData };
-    }
-  }, [interviewData]);
+  const [data, setData] = useState<any>([]); // 인터뷰 대상자
 
   const handlePlusCount = useCallback(() => {
     setCount((prev) => prev + 1);
@@ -166,43 +97,12 @@ function InterviewDataModify({ data, setData, readonly = false }: Props) {
     const [key, index] = R.split('_', name);
     const newData = data.with(index, { ...data[index], [key]: value });
     setData(newData);
-    methods.setValue(name, value);
+    methods.setValue('intervieweeList', newData);
   };
-
-  const init = () => {
-    L.flow(L.toPairs, (data) => {
-      L.forEach(data, ([name, value]: any) => {
-        methods.register(name);
-        methods.setValue(name, value);
-      });
-    })(defaultValues);
-  };
-
-  useEffect(() => {
-    if (defaultValues) init();
-  }, [defaultValues]);
-
-  useEffect(() => {
-    if (interviewData?.info.intervieweeList?.length > 0) {
-      setCount(interviewData?.info.intervieweeList?.length);
-      const newData = interviewData?.info.intervieweeList.map((item: any) => {
-        const {
-          intervieweeAgeView,
-          intervieweeAgeName,
-          intervieweeGenderView,
-          intervieweeGenderName,
-          ...rest
-        } = item;
-        return { ...rest };
-      });
-
-      setData(newData);
-    }
-  }, [interviewData]);
 
   return (
     <>
-      {!interviewId ? (
+      {!interviewText ? (
         <div className="p-2">
           <span className="d-flex justify-content-center py-2">
             데이터가 없습니다.
@@ -212,56 +112,175 @@ function InterviewDataModify({ data, setData, readonly = false }: Props) {
         <form>
           <div>
             <div className="px-3 py-2">
-              <FormItemInput
-                label="인터뷰 제목"
-                name="interviewTitle"
-                readonly={readonly}
-              />
-              <FormItemInput
-                label="인터뷰 목적"
-                name="interviewPurpose"
-                readonly={readonly}
-              />
+              <FormItemInput label="인터뷰 제목" name="interviewTitle" />
+              <FormItemInput label="인터뷰 목적" name="interviewPurpose" />
               <FormItemSelect
                 label="인터뷰 주제"
-                name="interviewTopicView"
+                name="interviewTopic"
                 isMulti={false}
-                options={selecttopic}
-                readonly={readonly}
+                options={[
+                  {
+                    label: '소비자 이해',
+                    value: 'interviewtopic001',
+                  },
+                  {
+                    label: '소비자 만족도',
+                    value: 'interviewtopic002',
+                  },
+                  {
+                    label: '매채/브랜드',
+                    value: 'interviewtopic003',
+                  },
+                  {
+                    label: '제품 개발',
+                    value: 'interviewtopic004',
+                  },
+                  {
+                    label: '기업평가',
+                    value: 'interviewtopic005',
+                  },
+                  {
+                    label: '사회 및 공공 조사',
+                    value: 'interviewtopic006',
+                  },
+                  {
+                    label: '학술',
+                    value: 'interviewtopic007',
+                  },
+                ]}
               />
               <FormItemSelect
                 label="인터뷰 상세주제"
-                name="interviewTopicDetailView"
+                name="interviewTopicDetail"
                 isMulti={false}
-                options={selecttopicdt}
-                readonly={readonly}
+                options={[
+                  {
+                    label: '라이프 스타일',
+                    value: 'interviewtopicdt001',
+                  },
+                  {
+                    label: 'U&A(이용행태)',
+                    value: 'interviewtopicdt002',
+                  },
+                  {
+                    label: '구매행태',
+                    value: 'interviewtopicdt003',
+                  },
+                  {
+                    label: '고객 만족도',
+                    value: 'interviewtopicdt004',
+                  },
+                  {
+                    label: '광고효과',
+                    value: 'interviewtopicdt005',
+                  },
+                  {
+                    label: '브랜드인지/진단',
+                    value: 'interviewtopicdt006',
+                  },
+                  {
+                    label: '사용성UX',
+                    value: 'interviewtopicdt007',
+                  },
+                  {
+                    label: '컨셉/제품테스트',
+                    value: 'interviewtopicdt008',
+                  },
+                  {
+                    label: '기업평판',
+                    value: 'interviewtopicdt009',
+                  },
+                  {
+                    label: '직원 만족도',
+                    value: 'interviewtopicdt010',
+                  },
+                  {
+                    label: '사회현안',
+                    value: 'interviewtopicdt011',
+                  },
+                  {
+                    label: '정책평가',
+                    value: 'interviewtopicdt012',
+                  },
+                  {
+                    label: '행정서비스 평가',
+                    value: 'interviewtopicdt013',
+                  },
+                  {
+                    label: '정책수요',
+                    value: 'interviewtopicdt014',
+                  },
+                  {
+                    label: '심리 사회과학',
+                    value: 'interviewtopicdt015',
+                  },
+                  {
+                    label: '의학',
+                    value: 'interviewtopicdt016',
+                  },
+                ]}
               />
               <FormItemTagInput
                 label="인터뷰 키워드"
-                name="interviewKeywordArray"
+                name="interviewKeyword"
                 placeholder="키워드 입력 후 Enter 해주세요."
-                readonly={readonly}
               />
               <FormItemSelect
                 label="인터뷰 출처"
-                name="interviewSourceView"
+                name="interviewSource"
                 isMulti={false}
-                options={selectsource}
-                readonly={readonly}
+                options={[
+                  {
+                    label: '없음',
+                    value: 'interviewsource000',
+                  },
+                  {
+                    label: 'Kri',
+                    value: 'interviewsource001',
+                  },
+                  {
+                    label: '학술',
+                    value: 'interviewsource002',
+                  },
+                ]}
               />
               <FormItemSelect
                 label="진행자 성향"
-                name="interviewStyleView"
+                name="interviewStyle"
                 isMulti={false}
-                options={selectsty}
-                readonly={readonly}
+                options={[
+                  {
+                    label: '설명형',
+                    value: 'interviewersty001',
+                  },
+                  {
+                    label: '요약형',
+                    value: 'interviewersty002',
+                  },
+                  {
+                    label: '예시형',
+                    value: 'interviewersty003',
+                  },
+                  {
+                    label: '기타',
+                    value: 'interviewersty900',
+                  },
+                ]}
               />
               <FormItemSelect
                 label="인터뷰 종류"
-                name="interviewTypeView"
+                name="interviewType"
                 isMulti={false}
-                options={selecttype}
-                readonly={readonly}
+                options={[
+                  {
+                    label: 'IDI',
+                    value: 'interviewtype001',
+                  },
+                  {
+                    label: 'FGD',
+                    value: 'interviewtype002',
+                  },
+                ]}
               />
             </div>
             <div className="px-3 py-2">
@@ -272,7 +291,6 @@ function InterviewDataModify({ data, setData, readonly = false }: Props) {
                   value={count}
                   onMinusCount={handleMinusCount}
                   onPlusCount={handlePlusCount}
-                  disabled={readonly}
                 />
               </div>
               {!L.isEmpty(data) && (
@@ -307,7 +325,12 @@ function InterviewDataModify({ data, setData, readonly = false }: Props) {
                             name={`intervieweeGender_${index}`}
                             placeholder="Select..."
                             onChange={handleChange}
-                            items={selectgender}
+                            items={[
+                              { label: '남', value: '남' },
+                              { label: '여', value: '여' },
+                              { label: '무관', value: '무관' },
+                              { label: '모름', value: '모름' },
+                            ]}
                             value={item.intervieweeGender ?? ''}
                             disabled={readonly}
                           />
@@ -318,9 +341,16 @@ function InterviewDataModify({ data, setData, readonly = false }: Props) {
                             name={`intervieweeAge_${index}`}
                             placeholder="Select..."
                             onChange={handleChange}
-                            items={selectage}
+                            items={[
+                              { label: '10대', value: '10대' },
+                              { label: '20대', value: '20대' },
+                              { label: '30대', value: '30대' },
+                              { label: '40대', value: '40대' },
+                              { label: '50대', value: '50대' },
+                              { label: '60대 이상', value: '60대 이상' },
+                              { label: '모름', value: '모름' },
+                            ]}
                             value={item.intervieweeAge ?? ''}
-                            disabled={readonly}
                           />
                         </div>
                         <div className="d-flex justify-content-between align-items-center ms-2">
@@ -329,7 +359,6 @@ function InterviewDataModify({ data, setData, readonly = false }: Props) {
                             name={`intervieweeLocation_${index}`}
                             value={item.intervieweeLocation}
                             onChange={handleChange}
-                            readOnly={readonly}
                           />
                         </div>
                       </div>
