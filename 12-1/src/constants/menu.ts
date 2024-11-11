@@ -1,0 +1,16 @@
+export const MENU0201 = 'MENU0201'; // 회원
+export const MENU0301 = 'MENU0301'; // 12-1 데이터 등록
+export const MENU0302 = 'MENU0302'; // 12-1 원시데이터 관리
+export const MENU0303 = 'MENU0303'; // 12-1 1차 검수
+export const MENU0304 = 'MENU0304'; // 12-1 2차 검수
+export const MENU0305 = 'MENU0305'; // 12-1 의미정확성 검수
+export const MENU0401 = 'MENU0401'; // 12-2 데이터 등록
+export const MENU0402 = 'MENU0402'; // 12-2 원시데이터 관리
+export const MENU0403 = 'MENU0403'; // 12-2 1차 검수
+export const MENU0404 = 'MENU0404'; // 12-2 2차 검수
+export const MENU0405 = 'MENU0405'; // 12-2 의미정확성 검수
+export const MENU0503 = 'MENU0503'; // 공통 코드 관리
+export const MENU0504 = 'MENU0504'; // 작업할당
+export const MENU0601 = 'MENU0601'; // 공지사항
+export const MENU0602 = 'MENU0602'; // QnA
+export const MENU0808 = 'MENU0808';
