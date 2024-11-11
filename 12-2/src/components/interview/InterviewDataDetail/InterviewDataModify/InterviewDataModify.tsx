@@ -97,7 +97,7 @@ function InterviewDataModify({
     const [key, index] = R.split('_', name);
     const newData = data.with(index, { ...data[index], [key]: value });
     setData(newData);
-    methods.setValue('intervieweeList', newData);
+    methods.setValue(name, value);
   };
 
   return (
