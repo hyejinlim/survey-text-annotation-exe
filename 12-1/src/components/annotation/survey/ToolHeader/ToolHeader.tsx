@@ -105,17 +105,21 @@ function ToolHeader() {
         const filtered = exeLabelingList.filter(
           ({ surveyQNum }: any) => surveyQNum === surveyNextQNum
         )[0];
-        const filteredSurveyAChoicesArray = getSurveyAChoicesArray(filtered);
+        const filteredSurveyAChoicesArray = filtered
+          ? getSurveyAChoicesArray(filtered)
+          : [];
 
         return {
           next_condition: surveyNextQCondition,
           next_q_num: surveyNextQNum,
-          next_q_context: filtered?.surveyContext,
-          next_answer: {
-            next_type: filtered?.surveyAType?.label,
-            next_num: filteredSurveyAChoicesArray?.length,
-            next_choices: filteredSurveyAChoicesArray,
-          },
+          ...(filtered && {
+            next_q_context: filtered?.surveyContext,
+            next_answer: {
+              next_type: filtered?.surveyAType?.label,
+              next_num: filteredSurveyAChoicesArray?.length,
+              next_choices: filteredSurveyAChoicesArray,
+            },
+          }),
         };
       });
 
