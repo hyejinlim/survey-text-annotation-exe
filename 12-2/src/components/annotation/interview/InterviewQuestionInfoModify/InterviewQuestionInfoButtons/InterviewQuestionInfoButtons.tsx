@@ -28,8 +28,6 @@ function InterviewQuestionInfoButtons({
   };
 
   const handleNext = () => {
-    if (inspectionType === 'F' && labelingListLength - 1 <= labelingIndex)
-      return;
     setLabelingIndex((prev) => prev + 1);
   };
 
