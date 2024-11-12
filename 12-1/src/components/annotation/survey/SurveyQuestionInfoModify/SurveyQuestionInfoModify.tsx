@@ -159,9 +159,10 @@ function SurveyQuestionInfoModify({ labelingRefetch }: Props) {
     }).then((result) => {
       const { isConfirmed } = result;
       if (isConfirmed) {
-        labelingList.splice(labelingIndex, 1);
-        setLabelingList(labelingList);
-        setLabelingIndex(labelingList.length - 1); // 라벨링 인덱스 초기화
+        const newData = labelingList.filter(
+          (_: any, index: number) => index !== labelingIndex
+        );
+        setLabelingList(newData);
       }
     });
   };
