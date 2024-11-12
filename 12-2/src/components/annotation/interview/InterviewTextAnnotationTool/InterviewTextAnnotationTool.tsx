@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Col, Row } from 'reactstrap';
-import InterviewDataModify from '~/components/interview/InterviewDataDetail/InterviewDataModify';
+import InterviewDataModify from '~/components/interview/InterviewDataModify';
 import CollapseBox from '~/components/shared/CollapseBox';
 import * as styles from './styles';
 import InterviewQuestionInfoModify from '../InterviewQuestionInfoModify';
